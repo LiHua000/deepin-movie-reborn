@@ -494,9 +494,15 @@ mpv_handle *MpvProxy::mpv_init()
         }
 
         if (CompositingManager::get().isSpecialControls()) {
-            my_set_property(pHandle, "hwdec", "vaapi");
-            my_set_property(pHandle, "vo", "vaapi");
-            m_sInitVo = "vaapi";
+            // 特殊机型（如 AMD 550 系列）：优先使用 DConfig(playmode) 覆盖的 vo/hwdec，
+            // 未配置时维持默认 vaapi
+            QString voName = CompositingManager::get().shouldUseSpecialVo()
+                    ? CompositingManager::get().getSpecialVoName() : QString("vaapi");
+            QString hwdecName = CompositingManager::get().shouldUseSpecialHwdec()
+                    ? CompositingManager::get().getSpecialHwdecName() : QString("vaapi");
+            my_set_property(pHandle, "vo", voName);
+            my_set_property(pHandle, "hwdec", hwdecName);
+            m_sInitVo = voName;
         }
     } else if (DecodeMode::HARDWARE == m_decodeMode) { //3.设置硬解
         QFileInfo X100GPU("/dev/x100gpu");
@@ -557,9 +563,15 @@ mpv_handle *MpvProxy::mpv_init()
         }
 
         if (CompositingManager::get().isSpecialControls()) {
-            my_set_property(pHandle, "hwdec", "vaapi");
-            my_set_property(pHandle, "vo", "vaapi");
-            m_sInitVo = "vaapi";
+            // 特殊机型（如 AMD 550 系列）：优先使用 DConfig(playmode) 覆盖的 vo/hwdec，
+            // 未配置时维持默认 vaapi
+            QString voName = CompositingManager::get().shouldUseSpecialVo()
+                    ? CompositingManager::get().getSpecialVoName() : QString("vaapi");
+            QString hwdecName = CompositingManager::get().shouldUseSpecialHwdec()
+                    ? CompositingManager::get().getSpecialHwdecName() : QString("vaapi");
+            my_set_property(pHandle, "vo", voName);
+            my_set_property(pHandle, "hwdec", hwdecName);
+            m_sInitVo = voName;
         }
     }
 

@@ -151,8 +151,10 @@ private:
     1002:6987 Lexa [Radeon 540X/550X/630 / RX 640 / E9171 MCM]
 
    @note 优化为直接读取 sysfs 避免启动子进程
+   @note 检测到 550 后读取 DConfig(playmode) 覆盖配置，有覆盖则使用覆盖的 vo/hwdec，
+         无覆盖则保持默认 vaapi
  */
-static bool detect550Series()
+bool CompositingManager::detect550Series()
 {
     // Read directly from sysfs instead of calling lspci sub-process
     QDir pciDir("/sys/bus/pci/devices");
@@ -185,6 +187,36 @@ static bool detect550Series()
                 if ((vendorIdStr == "1002" && deviceIdStr == "699f") ||
                     (vendorIdStr == "1002" && deviceIdStr == "6987")) {
                     qInfo() << "Detected 550 series GPU" << vendorId << deviceId;
+
+                    // 检测到 550 系列显卡后读取 DConfig(playmode) 覆盖配置，
+                    // 指定了特殊 VO/硬解则使用，否则维持默认 vaapi
+#ifdef DTKCORE_CLASS_DConfigFile
+                    DConfig *dconfig = DConfig::create("org.deepin.movie", "org.deepin.movie.playmode");
+                    if (dconfig && dconfig->isValid()) {
+                        const QStringList &keys = dconfig->keyList();
+                        if (keys.contains("IsSpecialVo") && dconfig->value("IsSpecialVo").toInt() == 1) {
+                            if (keys.contains("VoName")) {
+                                QString voName = dconfig->value("VoName").toString().trimmed();
+                                if (!voName.isEmpty()) {
+                                    m_bUseSpecialVo = true;
+                                    m_specialVoName = voName;
+                                    qInfo() << "550 uses special vo from dconfig:" << m_specialVoName;
+                                }
+                            }
+                        }
+                        if (keys.contains("IsSpecialHWDec") && dconfig->value("IsSpecialHWDec").toInt() == 1) {
+                            if (keys.contains("HwdecName")) {
+                                QString hwdecName = dconfig->value("HwdecName").toString().trimmed();
+                                if (!hwdecName.isEmpty()) {
+                                    m_bUseSpecialHwdec = true;
+                                    m_specialHwdecName = hwdecName;
+                                    qInfo() << "550 uses special hwdec from dconfig:" << m_specialHwdecName;
+                                }
+                            }
+                        }
+                    }
+                    delete dconfig;
+#endif
                     return true;
                 }
             }
@@ -596,6 +628,16 @@ QString CompositingManager::getSpecialVoName()
     return m_specialVoName.isEmpty() ? QString("gpu") : m_specialVoName;
 }
 
+bool CompositingManager::shouldUseSpecialHwdec()
+{
+    return m_bUseSpecialHwdec;
+}
+
+QString CompositingManager::getSpecialHwdecName()
+{
+    return m_specialHwdecName.isEmpty() ? QString("vaapi") : m_specialHwdecName;
+}
+
 void CompositingManager::detectOpenGLEarly()
 {
     static bool detect_run = false;
@@ -841,6 +883,8 @@ void CompositingManager::initMember()
     m_bHasCard = false;
     m_bUseSpecialVo = false;
     m_specialVoName.clear();
+    m_bUseSpecialHwdec = false;
+    m_specialHwdecName.clear();
 }
 
 //this is not accurate when proprietary driver used

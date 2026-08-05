@@ -102,6 +102,8 @@ public:
     bool isSpecialControls();
     bool shouldUseSpecialVo();  // 检测是否需要使用特殊 VO
     QString getSpecialVoName(); // 获取特殊机型的 VO 名称
+    bool shouldUseSpecialHwdec();  // 检测是否需要使用特殊硬解
+    QString getSpecialHwdecName(); // 获取特殊机型的硬解名称
     void getMpvConfig(QMap<QString, QString> *&aimMap);
 
 signals:
@@ -124,6 +126,7 @@ private:
 
     static bool is_device_viable(int id);
     static bool is_card_exists(int id, const std::vector<std::string> &drivers);
+    bool detect550Series(); // 检测是否为 AMD 550 系列显卡，并读取 DConfig 指定的渲染设置
 
     bool _composited {false};
     Platform _platform {Platform::Unknown};
@@ -133,6 +136,8 @@ private:
     bool m_setSpecialControls {false};
     bool m_bUseSpecialVo {false};  // 特殊机型需要使用特殊 VO
     QString m_specialVoName;  // 特殊机型的 VO 名称
+    bool m_bUseSpecialHwdec {false};  // 特殊机型需要使用特殊硬解
+    QString m_specialHwdecName;  // 特殊机型的硬解名称
     bool m_bZXIntgraphics;
     //保存配置
     QMap<QString, QString> *m_pMpvConfig;
