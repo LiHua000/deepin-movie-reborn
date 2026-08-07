@@ -126,7 +126,7 @@ private:
 
     static bool is_device_viable(int id);
     static bool is_card_exists(int id, const std::vector<std::string> &drivers);
-    bool detect550Series(); // 检测是否为 AMD 550 系列显卡，并读取 DConfig 指定的渲染设置
+    bool detect550Series(); // 检测是否为 AMD 550 系列显卡，若是则使用 vo=gpu hwdec=vaapi gpu-context=x11egl
 
     bool _composited {false};
     Platform _platform {Platform::Unknown};

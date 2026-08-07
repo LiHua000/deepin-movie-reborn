@@ -494,14 +494,15 @@ mpv_handle *MpvProxy::mpv_init()
         }
 
         if (CompositingManager::get().isSpecialControls()) {
-            // 特殊机型（如 AMD 550 系列）：优先使用 DConfig(playmode) 覆盖的 vo/hwdec，
-            // 未配置时维持默认 vaapi
+            // 特殊机型（如 AMD 550 系列）：使用 vo=gpu + hwdec=vaapi，并指定 x11egl 渲染上下文
             QString voName = CompositingManager::get().shouldUseSpecialVo()
                     ? CompositingManager::get().getSpecialVoName() : QString("vaapi");
             QString hwdecName = CompositingManager::get().shouldUseSpecialHwdec()
                     ? CompositingManager::get().getSpecialHwdecName() : QString("vaapi");
             my_set_property(pHandle, "vo", voName);
             my_set_property(pHandle, "hwdec", hwdecName);
+            if (voName == "gpu")
+                my_set_property(pHandle, "gpu-context", "x11egl");
             m_sInitVo = voName;
         }
     } else if (DecodeMode::HARDWARE == m_decodeMode) { //3.设置硬解
@@ -563,14 +564,15 @@ mpv_handle *MpvProxy::mpv_init()
         }
 
         if (CompositingManager::get().isSpecialControls()) {
-            // 特殊机型（如 AMD 550 系列）：优先使用 DConfig(playmode) 覆盖的 vo/hwdec，
-            // 未配置时维持默认 vaapi
+            // 特殊机型（如 AMD 550 系列）：使用 vo=gpu + hwdec=vaapi，并指定 x11egl 渲染上下文
             QString voName = CompositingManager::get().shouldUseSpecialVo()
                     ? CompositingManager::get().getSpecialVoName() : QString("vaapi");
             QString hwdecName = CompositingManager::get().shouldUseSpecialHwdec()
                     ? CompositingManager::get().getSpecialHwdecName() : QString("vaapi");
             my_set_property(pHandle, "vo", voName);
             my_set_property(pHandle, "hwdec", hwdecName);
+            if (voName == "gpu")
+                my_set_property(pHandle, "gpu-context", "x11egl");
             m_sInitVo = voName;
         }
     }
@@ -1463,7 +1465,9 @@ void MpvProxy::refreshDecode()
         if (!CompositingManager::get().composited()) {
             if (CompositingManager::get().isSpecialControls()) {
                 my_set_property(m_handle, "hwdec","vaapi");
-                my_set_property(m_handle, "vo","vaapi");
+                my_set_property(m_handle, "vo","gpu");
+                my_set_property(m_handle, "gpu-context","x11egl");
+                m_sInitVo = "gpu";
             }
         }
     } else if (DecodeMode::HARDWARE == m_decodeMode) { //3.设置硬解

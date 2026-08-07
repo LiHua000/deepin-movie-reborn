@@ -146,13 +146,12 @@ private:
 };
 
 /**
-   @brief 检测当前显卡是否为550系列显卡，若为则使用 hwdec=vaapi vo=vaapi
+   @brief 检测当前显卡是否为550系列显卡，若为则使用 vo=gpu hwdec=vaapi gpu-context=x11egl
     1002:699f Lexa PRO [Radeon 540/540X/550/550X / RX 540X/550/550X]
     1002:6987 Lexa [Radeon 540X/550X/630 / RX 640 / E9171 MCM]
 
    @note 优化为直接读取 sysfs 避免启动子进程
-   @note 检测到 550 后读取 DConfig(playmode) 覆盖配置，有覆盖则使用覆盖的 vo/hwdec，
-         无覆盖则保持默认 vaapi
+   @note 测试分支：检测到 550 系列显卡后直接使用 vo=gpu hwdec=vaapi，不再读取 DConfig
  */
 bool CompositingManager::detect550Series()
 {
@@ -188,35 +187,12 @@ bool CompositingManager::detect550Series()
                     (vendorIdStr == "1002" && deviceIdStr == "6987")) {
                     qInfo() << "Detected 550 series GPU" << vendorId << deviceId;
 
-                    // 检测到 550 系列显卡后读取 DConfig(playmode) 覆盖配置，
-                    // 指定了特殊 VO/硬解则使用，否则维持默认 vaapi
-#ifdef DTKCORE_CLASS_DConfigFile
-                    DConfig *dconfig = DConfig::create("org.deepin.movie", "org.deepin.movie.playmode");
-                    if (dconfig && dconfig->isValid()) {
-                        const QStringList &keys = dconfig->keyList();
-                        if (keys.contains("IsSpecialVo") && dconfig->value("IsSpecialVo").toInt() == 1) {
-                            if (keys.contains("VoName")) {
-                                QString voName = dconfig->value("VoName").toString().trimmed();
-                                if (!voName.isEmpty()) {
-                                    m_bUseSpecialVo = true;
-                                    m_specialVoName = voName;
-                                    qInfo() << "550 uses special vo from dconfig:" << m_specialVoName;
-                                }
-                            }
-                        }
-                        if (keys.contains("IsSpecialHWDec") && dconfig->value("IsSpecialHWDec").toInt() == 1) {
-                            if (keys.contains("HwdecName")) {
-                                QString hwdecName = dconfig->value("HwdecName").toString().trimmed();
-                                if (!hwdecName.isEmpty()) {
-                                    m_bUseSpecialHwdec = true;
-                                    m_specialHwdecName = hwdecName;
-                                    qInfo() << "550 uses special hwdec from dconfig:" << m_specialHwdecName;
-                                }
-                            }
-                        }
-                    }
-                    delete dconfig;
-#endif
+                    // 测试分支：550 系列显卡直接使用 vaapi + gpu 渲染，不依赖 DConfig 覆盖
+                    m_bUseSpecialVo = true;
+                    m_specialVoName = "gpu";
+                    m_bUseSpecialHwdec = true;
+                    m_specialHwdecName = "vaapi";
+                    qInfo() << "550 uses vo=gpu hwdec=vaapi directly";
                     return true;
                 }
             }
